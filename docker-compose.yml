@@ -1,0 +1,57 @@
+services:
+  suitecrm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: suitecrm
+    container_name: suitecrm-app
+    restart: unless-stopped
+    volumes:
+      - ./:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/upload
+    ports:
+      - "${APP_PORT:-8000}:80"
+    depends_on:
+      - db
+      - es
+    networks:
+      - suitecrm-network
+
+  db:
+    image: mariadb:10.5
+    container_name: suitecrm-db
+    restart: unless-stopped
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-suitecrm}
+      MYSQL_USER: ${DB_USERNAME:-suitecrm}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-suitecrm}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-suitecrm}
+    volumes:
+      - suitecrm-db-data:/var/lib/mysql
+    networks:
+      - suitecrm-network
+
+  es:
+    image: elasticsearch:7.17.5
+    container_name: suitecrm-es
+    restart: unless-stopped
+    environment:
+      - "discovery.type=single-node"
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - suitecrm-es-data:/usr/share/elasticsearch/data
+    ports:
+      - "${ES_PORT:-9200}:9200"
+    networks:
+      - suitecrm-network
+
+networks:
+  suitecrm-network:
+    driver: bridge
+
+volumes:
+  suitecrm-db-data:
+  suitecrm-es-data: 
